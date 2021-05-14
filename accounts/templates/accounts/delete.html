@@ -1,22 +1,19 @@
 {% extends 'accounts/main.html' %}
 {% load static %}
 {% block content %}
-
 <br>
 <div class="row container-fluid">
     <div class="col-md-6">
         <div class="card card-body">
-            <form action="" method="post">
+            <p>Are you sure you want to delete "{{item}}"?</p>
+            <form action="" method="POST">
                 {% csrf_token %}
-                {{formset.management_form}}
-                {% for form in formset %}
-                    {{form}}
-                    <hr/>
-                {% endfor %}
-                <input type="submit" name="submit">
+                <a class="btn btn-sm btn-warning" href="{% url 'home' %}">Cancel</a>
+                <input class="btn btn-sm btn-danger" type="submit" name='Confirm'>
             </form>
         </div>
     </div>
 </div>
+
 
 {% endblock %}
