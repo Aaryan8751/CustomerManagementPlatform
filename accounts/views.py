@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group
 from django.contrib import messages
 # Create your views here.
 from .models import *
-from .form import OrderForm, CreateUserForm
+from .form import CustomerForm, OrderForm, CreateUserForm
 from .filters import OrderFilter
 from .decorators import unauthenticated_user ,allowed_users, admin_only
 
@@ -25,6 +25,9 @@ def registerPage(request):
 
             group = Group.objects.get(name='customer')
             user.groups.add(group)
+            Customer.objects.create(
+                user=user,
+            )
             messages.success(request, "Account was created for " + username)
             return redirect('login')
 
@@ -56,6 +59,21 @@ def logoutUser(request):
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['customer'])
+def accountSettings(request):
+    customer=request.user.customer
+    form =CustomerForm(instance=customer)
+
+    if (request.method=="POST"):
+        form = CustomerForm(request.POST,request.FILES,instance=customer)
+        if form.is_valid:
+            form.save()
+            
+    context = {'form':form}
+    return render(request, 'accounts/account_setting.html', context)
+
+
+@login_required(login_url='login')
 @admin_only
 def home(request):
     Orders = Order.objects.all()
@@ -71,19 +89,26 @@ def home(request):
                "total_order": total_order, "delivered": delivered, "pending": pending}
     return render(request, 'accounts/dashboard.html', context)
 
-
+@login_required(login_url='login')
+@allowed_users(allowed_roles=['customer'])
 def userPage(request):
-    context = {}
+    orders = request.user.customer.order_set.all()
+    total_order = orders.count()
+    delivered = orders.filter(status="Delivered").count()
+    pending = orders.filter(status="Pending").count()
+    context = {'orders':orders,"pending":pending,"delivered":delivered,"total_order":total_order}
     return render(request, 'accounts/user.html', context)
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['admin'])
 def products(request):
     products = Product.objects.all()
     return render(request, 'accounts/products.html', {'products': products})
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['admin'])
 def customer(request, pk_test):
     customer = Customer.objects.get(id=pk_test)
 
@@ -98,10 +123,10 @@ def customer(request, pk_test):
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['admin'])
 def createOrder(request, pk):
 
-    OrderFormSet = inlineformset_factory(
-        Customer, Order, fields=('product', 'status'), extra=5)
+    OrderFormSet = inlineformset_factory(Customer, Order, fields=('product', 'status'), extra=5)
     customer = Customer.objects.get(id=pk)
     formset = OrderFormSet(queryset=Order.objects.none(), instance=customer)
     #form = OrderForm(initial={'customer':customer})
@@ -119,6 +144,7 @@ def createOrder(request, pk):
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['admin'])
 def updateOrder(request, pk):
 
     order = Order.objects.get(id=pk)
@@ -134,6 +160,7 @@ def updateOrder(request, pk):
 
 
 @login_required(login_url='login')
+@allowed_users(allowed_roles=['admin'])
 def deleteOrder(request, pk):
 
     order = Order.objects.get(id=pk)
