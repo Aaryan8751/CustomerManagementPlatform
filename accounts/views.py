@@ -4,7 +4,7 @@ from django.forms import inlineformset_factory
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
+
 
 from django.contrib import messages
 # Create your views here.
@@ -23,11 +23,7 @@ def registerPage(request):
             user = form.save()
             username = form.cleaned_data.get('username')
 
-            group = Group.objects.get(name='customer')
-            user.groups.add(group)
-            Customer.objects.create(
-                user=user,
-            )
+            
             messages.success(request, "Account was created for " + username)
             return redirect('login')
 
